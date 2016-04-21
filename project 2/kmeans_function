@@ -1,0 +1,16 @@
+myfunction <- function(arg1, arg2, ... ){
+statements
+return(object)
+}
+
+kmeans_iyer <- function(df,k){
+	fit <-kmeans(df,k)
+	#get cluster means:this illustrates amount of each characteristic in each cluster
+	aggregate(train_processed,by=list(fit$cluster), FUN=mean)
+	#append cluster assignment
+	cluster_assignment <- data.frame(train_processed, fit$cluster)
+	#look at some of the characteristics within clusters
+	check <- cluster_assignment[which(cluster_assignment$cshape == .4),c(1,2,22)]
+	#table of how many variables fit in each cluster
+	table(fit$cluster)
+}
