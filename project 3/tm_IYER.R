@@ -3,7 +3,9 @@ library(dplyr)
 library(ggplot2)
 library(wordcloud)
 library(quanteda)
-getwd()
+library(wordnet)
+library(RColorBrewer)
+
 
 data("acq")
 head(acq)
@@ -24,7 +26,6 @@ ncol(ACQdoc) #2103 cols
 inspect(ACQdoc[1:6,1:10])
 
 #document term frequency
-tm::
 test1tf <- as.data.frame(termFreq(text1))
 #rank words most to least
 rank_of_words <- cbind(as.data.frame(rownames(test1tf)),test1tf %>% arrange(desc(termFreq(text1))))
@@ -68,22 +69,53 @@ ggplot(term_sort[1:50,], aes(x=term,y=freq)) + geom_bar(stat = "identity") +
   xlab("Terms") + ylab("Count") + coord_flip()
 
 #remove sparse terms
-tdm2 <- removeSparseTerms(ACQdoc, sparse = .5)
+tdm2 <- removeSparseTerms(ACQdm2, sparse = .8)
 tdm2
+
 
 #distance matrix for clustering
 distMatrix <- dist(scale(tdm2))
 fit <- hclust(distMatrix, method="ward.D2")
 plot(fit)
 
-#document term matrix
-dtm <- DocumentTermMatrix(ACQstop)
-dtm
-names(dtm)
-nrow(dtm)
-wordsperdoc <- rowSums(as.matrix(dtm))
-wordsperdoc
 
+#using quanteda for the next few questions
 mycorpus <- corpus(acq)
+mycorpus_dfm <- dfm(mycorpus,ignoredFeatures = stopwords)
+mycorpus_dfm <- removeSparseTerms(mycorpus_dfm, sparse = .5)
+docnames(mycorpus_dfm)
+
+
 summary_acq <- as.data.frame(summary(mycorpus))
 sort_top10 <- summary_acq %>% arrange(desc(Tokens))
+
+
+
+#10 longest documents in the corpus
+top_10_docs <- subset(sort_top10, select=c(id, heading))[1:10,]
+
+#dendogram for top 10
+#list of top10 docs
+top10 <- top_10_docs[,1]
+
+#dendogram for top 10
+acq.mat <- as.matrix(tdm2)
+acq.mat <- as.data.frame(acq.mat)
+acq.mat <- acq.mat[,top10]
+acq.mat <- as.matrix(acq.mat)
+distMatrix <- dist(scale(acq.mat))
+fit <- hclust(distMatrix, method = "ward.D2")
+plot(fit,main = "Top 10 Docs Dendogram")
+
+#word cloud for top 10
+dtm <- TermDocumentMatrix(ACQstop)
+m <- as.data.frame(as.matrix(dtm))
+m <- m[,top10]
+m <- as.matrix(m)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
