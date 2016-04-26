@@ -54,6 +54,7 @@ ACQdm2
 #find terms with a frequency of 5 or more
 freq.terms <- findFreqTerms(ACQdm2, lowfreq=5)
 freq.terms
+
 #find terms associated with "states"- measure of the co-occurrence of words in multiple documents.
 #words that co-occur with the given word
 #ex below, all words that co occur with states in 50% of the docs
@@ -81,22 +82,22 @@ plot(fit)
 
 #using quanteda for the next few questions
 mycorpus <- corpus(acq)
-mycorpus_dfm <- dfm(mycorpus,ignoredFeatures = stopwords)
-mycorpus_dfm <- removeSparseTerms(mycorpus_dfm, sparse = .5)
-docnames(mycorpus_dfm)
-
-
 summary_acq <- as.data.frame(summary(mycorpus))
-sort_top10 <- summary_acq %>% arrange(desc(Tokens))
-
-
-
-#10 longest documents in the corpus
-top_10_docs <- subset(sort_top10, select=c(id, heading))[1:10,]
+#find top 10 longest docs
 
 #dendogram for top 10
 #list of top10 docs
+#10 longest documents in the corpus
+sort_top10 <- summary_acq %>% arrange(desc(Tokens))
+top_10_docs <- subset(sort_top10, select=c(id, heading))[1:10,]
 top10 <- top_10_docs[,1]
+
+
+topdocs <- mycorpus[mycorpus$documents$id %in% top10]
+
+#sumarry of whole doc and top docs as data frame
+summary_td <- as.data.frame(summary(topdocs))
+
 
 #dendogram for top 10
 acq.mat <- as.matrix(tdm2)
@@ -119,3 +120,41 @@ set.seed(1234)
 wordcloud(words = d$word, freq = d$freq, min.freq = 1,
           max.words=200, random.order=FALSE, rot.per=0.35, 
           colors=brewer.pal(8, "Dark2"))
+
+#Prior to removing punctuation find the longest word and longest sentence in each of 10 docs
+#my corpus is before removing punctuation
+top10_docs <- sort_top10[1:10,]
+#tokenize the top 10 docs then look for the longest word
+tokened <- tokenize(topdocs,what = c("word"))
+names(tokened)
+
+
+#testing
+a <- tokened[[2]]
+b <- a[nchar(a) == max(nchar(a))]
+
+#####FIND LONGEST WORD in 10 docs
+max_length <- c()
+word <- c()
+for (i in 1:10){
+  words <- tokened[[i]]
+  word[i] <- words[nchar(words) == max(nchar(words))]
+  max_length[i] <- max(nchar(words))
+}
+
+final.longest_word <- data.frame(max_length = max_length,word=word)
+
+#####FIND LONGEST SENTENCE in 10 docs
+tokened_sent <- tokenize(topdocs,what = c("sentences"))
+
+#testing
+a <- tokened_sent[[2]]
+a[3]
+b <- a[nchar(a) == max(nchar(a))]
+b
+max_sentence_length <- c()
+sentence <- c()
+for (i in 1:10){
+  
+}
+
