@@ -5,8 +5,9 @@ library(wordcloud)
 library(quanteda)
 library(wordnet)
 library(RColorBrewer)
-
-
+library(NLP)
+library(openNLP)
+library(textreuse)
 data("acq")
 head(acq)
 
@@ -31,7 +32,6 @@ test1tf <- as.data.frame(termFreq(text1))
 rank_of_words <- cbind(as.data.frame(rownames(test1tf)),test1tf %>% arrange(desc(termFreq(text1))))
 
 #convert corpus to lowercase
-#LAZY = TRUE so that only docs being addressed are transformed, since this is a large body
 ACQlow <- tm_map(ACQ, content_transformer(tolower))
 ACQlow
 
@@ -145,16 +145,52 @@ for (i in 1:10){
 final.longest_word <- data.frame(max_length = max_length,word=word)
 
 #####FIND LONGEST SENTENCE in 10 docs
-tokened_sent <- tokenize(topdocs,what = c("sentences"))
+topdocs
+topdocs[[2]]
+names(topdocs[1])
 
-#testing
-a <- tokened_sent[[2]]
-a[3]
-b <- a[nchar(a) == max(nchar(a))]
-b
-max_sentence_length <- c()
-sentence <- c()
-for (i in 1:10){
-  
+#split into sentences
+get_sentence_df_func <- function(x){
+  sentence_df <- data.frame(sentence = character(0),
+                            document = character(0))
+  for (i in 1:10){
+    temp <- data.frame(sentence=tokenize_sentences(x[[i]][[1]]),id=names(x[i]))
+    sentence_df <- rbind(sentence_df,temp)
+  }
+  return(sentence_df)
 }
+#data frame of sentences by document 
+text_sent <- get_sentence_df_func(topdocs)
+
+#word count for each sentence
+text_sent$sentence <- as.character(text_sent$sentence)
+count <- c()
+sapply(strsplit(text_sent$sentence[23], " "), length)
+for (i in 1:nrow(text_sent)){
+  count[i] <- sapply(strsplit(text_sent$sentence[i], " "), length)
+}
+#length of each sentence in each document
+count_sentences <- cbind(count,text_sent)
+#top 10 lengths 
+longest_10 <- count_sentences %>% group_by(id) %>% 
+  arrange(desc(count)) %>% top_n(1,count) %>% distinct(id)
+
+#remove punctuation for each sentence
+
+
+
+
+#################################################################################
+#for zipfr
+library(languageR)
+document.spc <- text2spc.fnc(strsplit(x[[1]][1]$content," "))
+document.vgc <- growth.fnc(strsplit(acq10[[1]][1]$content," "))
+text <- strsplit(document$content, " ")[[1]]
+
+##create spc object
+this.spc <- text2spc.fnc(text)
+
+#create growth object
+this_growth<- growth.fnc(text)
+
 
