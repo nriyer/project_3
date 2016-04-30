@@ -111,10 +111,11 @@ for (i in 1:10) {
 #for zipfr
 
 for(i in 1:10) {
-  ind <- top10rowid[i]
-  words <- colnames(as.matrix(dtm[ind,])) # all words
-  f <- as.matrix(dtm[ind,]) # frequencies for all words
+  ind <- top10[i]
+  words <- colnames(as.matrix(ACQdm2[ind,])) # all words
+  f <- as.matrix(ACQdm2[ind,]) # frequencies for all words
 
-  z <- tfl(f)
-  plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency", main=acq[[ind]]$meta$id)
+  z <- tfl(f) # 
+  plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency", 
+       main=paste("Type Frequency Plot for ID: ",acq[[ind]]$meta$id))
 }

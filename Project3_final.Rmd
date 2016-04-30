@@ -319,6 +319,8 @@ print(d.full)
 
 Again, we use the \texttt{openNLP} package and the part of speech tagger to determine these parts of speech. Below is a table of every word in the corpus. There will be duplicates in this list as words can have different parts of speech. For example, the word \texttt{total} appears in the text as a \texttt{JJ} and a \texttt{NN}.
 
+Since this is so long, we only print the head of the table here. The entire table can be found in the Appendix.
+
 ```{r}
 d <- data.frame()
 pos_tag_annotator = Maxent_POS_Tag_Annotator()
@@ -348,12 +350,51 @@ for (i in 1:10) {
   }
 }
 nums <-sapply( d$words, function(x) suppressWarnings(!is.na(as.numeric(as.character(x)))))
-d <- d[!nums,]
-d <- unique(d)
-print( d[order(d$words),] )
+d.smaller <- d[!nums,]
+d.smaller <- unique(d.smaller)
+d.smaller <- d.smaller[order(d.smaller$words),]
+head(d.smaller)
 ```
 
 ## Analyze word frequency using functions from package zipfR
+
+We first look at Type Frequency Plots. This plots the frequency count of every word in the corpus for a given document.
+
+```{r out.width="4.3cm"}
+library(zipfR)
+for(i in 1:10) {
+  ind <- top10[i]
+  f <- as.matrix(ACQdm2[ind,]) # frequencies for all words
+
+  z <- tfl(f) # 
+  plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency", 
+       main=paste("Type Frequency Plot for ID: ",acq[[ind]]$meta$id))
+}
+```
+
+It is clear from these plots, that every document uses about a tenth of the words in the entire corpus. This is seen by the very long tail of black at value 0 for most words along the $x$-axis.
+
+Below, a Type Frequency plot for the all top 10 documents at once. This shows a more gradual slope down from the extremly frequent words like \texttt{the} to less frequent words like \texttt{yens}.
+
+```{r, out.width="5.5cm", fig.align="center"}
+f <- colSums(as.matrix(ACQdm2[top10,])) # frequencies for all words
+z <- tfl(f) # 
+plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency", 
+     main="Type Frequency Plot for Top 10")
+```
+
+We now plot convert the type frequency list to a frequency spectrum object. This allows us to plot frequency spectra for each document. The frequency spectra reveal that these documents come from a similar source. Frequency Spectra look different for different types of documents. This incrediby sharp fall off from the first to third classes indicates shorter news-like documents.
+
+```{r out.width="4.3cm"}
+for(i in 1:10) {
+  ind <- top10[i]
+  f <- as.matrix(ACQdm2[ind,]) # frequencies for all words
+
+  z <- tfl(f) # 
+  s <- tfl2spc(z)
+  plot(s, main=paste("Frequency Spectrum for ID: ",acq[[ind]]$meta$id))
+}
+```
 
 
 ## Discussion
@@ -366,5 +407,8 @@ Lastly, the use of text analytics really depends on what we're trying to accompl
 
 In summary, we learn a lot about text analytics as it relates to data science.  We learned the general approach to breaking down texts in R, how to explore text through different analysis approaches, and how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and kmeans).
 
+## Appendix
 
-
+```{r}
+d.smaller
+```
