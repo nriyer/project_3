@@ -6,6 +6,11 @@ output: pdf_document
 geometry: margin=0.5in
 ---
 
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(dev = 'pdf')
+```
+
 ```{r chunk_name, include=FALSE}
 library(tm)
 library(dplyr)
@@ -137,38 +142,224 @@ We see from the above that the document IDs in the from the corpus' metadata are
 top10
 ```
 ##### For each document work through the examples given in Lecture 7 to display the dendrogram and the WordCloud
-```{r}
+Both the dendograms and the word clouds analyzes the original corpus without punctuation or stopwords. We decided to remove punctuation and stopwords for the visualization because we are not interested in the interaction of common English words. Rather we prefer to ignore the punctuation and stopwords. 
+
+For the dendogram, we provide two rednerings. The first dendogram uses all the terms from the corpus without punctuation and stopwords. This reveals very little information as it has all 1,502 words displayed in a dendogram. The dendogram becomes very messy and does not reveal anything interesting about the document. So, we include a dendogram which removes sparse terms at a sparse level of 0.8. This reduces the \texttt{DocumentTermMatrix} to only 28 terms. This then makes the dendogram much easier to interpret. 
+
+These are dendograms for each of the 10 chosen documents with their ID listed in the title of the figure.
+
+```{r out.width="4.3cm"}
 #top 10 dendogram, 1 for each of the top 10 documents
-top10.dendogram <- function(tdm2,doc)
+top10.dendogram <- function(doc)
 {
-  acq.mat <- as.matrix(tdm2)
-  acq.mat <- as.data.frame(acq.mat)
-  acq.mat <- acq.mat[,top10]
-  acq.mat <- as.matrix(acq.mat)
-  distMatrix <- dist(scale(acq.mat[,doc]))
+  # full dendogram
+  acq.mat <- as.matrix( ACQdm2[doc,] )
+  distMatrix <- dist(scale(acq.mat[doc,]))
   fit <- hclust(distMatrix, method = "ward.D2")
-  print(plot(fit,main = "Dendogram"))
+  plot(fit,main = paste("Full Dendogram for ID: ", doc), xlab ="", sub = "")
+  
+  # dendogram with sparse terms removed
+  acq.sp <- removeSparseTerms(ACQdm2, sparse = .8)
+  acq.mat <- as.matrix( acq.sp[doc,] )
+  distMatrix <- dist(scale(acq.mat[doc,]))
+  fit <- hclust(distMatrix, method = "ward.D2")
+  plot(fit,main = paste("Dendogram without sparse terms for ID: ", doc), xlab = "", sub = "")
 }
+for (i in 1:10){
+  top10.dendogram(top10[i])
+}
+```
 
+This is a dendogram rendering of the top ten documents in the corpus, without punctuation or stopwords:
 
+```{r out.width = "8.6cm", fig.align="center"}
+# full dendogram
+acq.mat <- as.matrix(ACQdm2)
+distMatrix <- dist(scale( colSums(acq.mat[top10,]) ))
+fit <- hclust(distMatrix, method = "ward.D2")
+plot(fit,main = paste("Full Dendogram for Top 10 Documents"), xlab ="", sub = "")
+
+# dendogram with sparse terms removed
+acq.sp <- removeSparseTerms(ACQdm2, sparse = .8)
+acq.mat <- as.matrix(acq.sp)
+distMatrix <- dist(scale( colSums(acq.mat[top10,]) ))
+fit <- hclust(distMatrix, method = "ward.D2")
+plot(fit,main = paste("Dendogram for Top 10 without Sparse Terms"), xlab ="", sub = "")
+```
+
+These are word clouds for the individual top ten documents.
+
+```{r include=FALSE}
+options(warn=-1)
+```
+```{r out.width="3.5cm"}
 #word cloud for top 10
 wordcloud.func <- function(ACQstop, doc)
 {
   dtm <- TermDocumentMatrix(ACQstop)
   v <- as.matrix(dtm[,doc])
   set.seed(1234)
+  
+  layout(matrix(c(1, 2), nrow=2), heights=c(0.5, 4.5))
+  par(mar=rep(0, 4))
+  plot.new()
+  text(x=0.5, y=0.5, paste("Word Cloud for Document ID: ",doc) )
   wordcloud(words = rownames(v), freq = v, min.freq = 1,
             max.words=200, random.order=FALSE, rot.per=0.35, 
             colors=brewer.pal(8, "Dark2"))
 }
+
 for (i in 1:10){
-  wordcloud.func(ACQstop,i)
+  wordcloud.func(ACQstop,top10[i])
 }
 ```
 
+This is a wordcloud for the top ten documents combined.
+
+```{r out.width="5cm", fig.align="center"}
+dtm <- TermDocumentMatrix(ACQstop)
+v <- t( as.matrix(dtm[,top10]) )
+v <- colSums(v)
+set.seed(1234)
+
+layout(matrix(c(1, 2), nrow=2), heights=c(0.5, 4.5))
+par(mar=rep(0, 4))
+plot.new()
+text(x=0.5, y=0.5, "Word Cloud for Top Documents" )
+wordcloud(words = names(v), freq = v, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+```{r include=FALSE}
+options(warn=0)
+```
+
+
 ###### Prior to removing punctuation find the longest word and longest sentence in each of 10 docs my corpus is before removing punctuation
 
-##### The project helped us learn a lot about text analytics and key principals of analyzing unstructured text.We identified three key areas this project helped you learn about data science includes (1) the general approach to breaking down texts in R using Corpuses and tokens; (2) The exploratory analysis and derived insights that can be accomplish on a text documents through word counts, frequencies, associations, and character lengths; (3) we were able to learn how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and kmeans). 
+For this task, we will use the maximum entropy parsers available in the \texttt{openNLP}. The results are printed in the table after the following code. We calculate the longest sentence by characters and by consituents (words, etc.). If these two sentences are different, we note that, otherwise, we just list the longest sentence. 
+
+```{r}
+# find the longest word and longest sentence in each document from the 10 largest documents
+for (i in 1:10) {
+  ind <- top10[i]
+  s <- as.String(acq[[ind]]$content)
+  
+  ##longest sentence by characters
+  sent_token_annotator <- Maxent_Sent_Token_Annotator()
+  a1 <- sent_token_annotator(s)
+  l <- a1$end - a1$start # table of sentence lengths
+  ls.i <- which.max(l) #index of longest sentence by characters
+  ls <- as.String( s[a1][ls.i] ) #longest sentence by characters
+  
+  ##longest sentence by constituents
+  word_token_annotator <- Maxent_Word_Token_Annotator()
+  a2 <- word_token_annotator(s, a1)
+  a2 <- a2[a2$type=="sentence"]
+  l.w <- as.matrix( lapply(a2$features, function(x) length(x$constituents)) ) #sent length
+  l.w.ind <- which.max( l.w )
+  ls.w <- as.String( s[a1][l.w.ind] )
+
+  ##longest word
+  word_token_annotator <- Maxent_Word_Token_Annotator()
+  a2 <- word_token_annotator(s, a1)
+  a2 <- a2[a2$type=="word"]
+  lw.i <- which.max(a2$end - a2$start) #index of longest sentence
+  lw <- s[a2][lw.i] #longest sentence
+
+  # print everything so that it's pretty
+  print( as.String( paste("Document ID: ", ind) ) )
+  print( as.String( paste( "\tLongest Word:\t", lw) ) )
+  if (ls == ls.w) {
+    print( as.String( paste( "\tLongest Sentence:\t", ls) ) )
+  } else {
+    print( as.String( paste( "\tLongest Sentence by nchar:\t", ls) ) )
+    print( as.String( paste( "\tLongest Sentence by words:\t", ls.w) ) )
+    print( as.String(""))
+  }
+  print( as.String(""))
+  
+}
+```
+
+###### Print a table of the length of each sentence in each of the 10 documents.
+
+We print a table of sentence length for each document, by nchar and by number of words. Since the sentences are long, we only print the first 45 characters. 
+
+```{r}
+d.full <- data.frame()
+for (i in 1:10) {
+  ind <- top10[i]
+  s <- as.String(acq[[ind]]$content)
+  
+  ##longest sentence by characters
+  sent_token_annotator <- Maxent_Sent_Token_Annotator()
+  a1 <- sent_token_annotator(s)
+  l <- a1$end - a1$start # table of sentence lengths
+  
+  ##longest sentence by constituents
+  word_token_annotator <- Maxent_Word_Token_Annotator()
+  a2 <- word_token_annotator(s, a1)
+  a2 <- a2[a2$type=="sentence"]
+  l.w <- as.matrix( lapply(a2$features, function(x) length(x$constituents)) ) #sent length
+
+
+  d<-data.frame(id=ind,lenbychar=l,lenbyword=l.w,sent=sapply( s[a1], function(x) substr(x,0,45)))
+  d.full <- rbind(d.full,d)
+}
+rownames(d.full) <- 1:dim(d.full)[1]
+print(d.full)
+```
+
+
+```{r include=FALSE}
+d <- data.frame()
+pos_tag_annotator = Maxent_POS_Tag_Annotator()
+for (i in 1:10) {
+  
+  ind <- top10[i]
+  s <- as.String(acq[[ind]]$content)
+  s <- tolower(s)
+  
+  a1 <- sent_token_annotator(s)
+  
+  # For each sentence of each document, remove the punctuation.
+  s.cl <- sapply( s[a1], removePunctuation )
+  
+  for( j in 1:length(s.cl)) {
+
+    sub.s <- as.String(s.cl[j])
+    
+    a2 <- word_token_annotator(sub.s, a1)
+    a3 <- pos_tag_annotator( sub.s, a = a2)
+
+    words <- as.vector( sub.s[a3] )
+    pos <- as.matrix( lapply(a3$features, function(x) x$POS) )
+    
+    df <- data.frame(words=words, pos=pos)
+    d<-rbind(d,df)
+    
+
+  }
+
+  
+}
+nums <-sapply( d$words, function(x) suppressWarnings(!is.na(as.numeric(as.character(x)))))
+d <- d[!nums,]
+d <- unique(d)
+```
+
+
+###### Discussion
+
+The project helped us learn a lot about text analytics and key principals of analyzing unstructured text.  Key themes of this project that helped us learn about data science includes (1) the general approach to breaking down texts in R using Corpuses and tokens; (2) the exploratory analysis and derived insights that can be accomplish on a text documents through word counts, frequencies, associations, and character lengths; and (3) learning how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and means).
+
+There were a few key considerations/issues we realized through this project about text analytics within data science.  For example, when breaking down text for mining you might go through the exercises of removing punctuation.  When removing punctuation you run the risk of losing hyphenated words or variations of words used such as those with apostrophes.  Additionally, a common problem is misspellings and variations of spelling of terms or words.  For example, when trying to identify key terms and themes through text analytics/text mining you might dilute popular trends based on not summarizing the different variations of spelling of a term into one.  For example, if we were analyzing top terms, "profit", "profitable", and "profits" needs to be considered as one term in order to full capture true trends of words. If the variations aren't considered then the total frequencies (therefore top trends and categories) might not get captured. 
+
+Lastly, the use of text analytics really depends on what we're trying to accomplish.  Word clouds are interesting and good tools for data exploration but may not be helpful nor a tool for one to make actionable decisions.  The application and use case of association of terms as well as dendograms are interesting because if someone was interested to categorize or summarize key concepts on a website or through a content service, it may provide actionable insight on where to summarize or collapse specific sub-pages or categories of content and sources/themes.  
+
+In summary, we learn a lot about text analytics as it relates to data science.  We learned the general approach to breaking down texts in R, how to explore text through different analysis approaches, and how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and kmeans).
 
 
 
