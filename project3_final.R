@@ -7,6 +7,7 @@ library(wordnet)
 library(RColorBrewer)
 library(NLP)
 library(openNLP)
+library(openNLPdata)
 library(textreuse)
 data("acq")
 head(acq)
@@ -75,26 +76,7 @@ term_sort[1:50,]
 ggplot(term_sort[1:50,], aes(x=term,y=freq)) + geom_bar(stat = "identity") + 
   xlab("Terms") + ylab("Count") + coord_flip()
 
-#################################################
-#remove sparse terms
-tdm2 <- removeSparseTerms(ACQdm2, sparse = .8)
-tdm2
-
-#without sparsity
-
-top10 <- sort(rowSums(as.matrix(tdm2)), decreasing = TRUE)[1:10] #use dtm for with sparsity
-top10 <- as.data.frame(top10)
-#list of top 10 to loop through
-list_top10 <- top10$top10
-list_top10
-
-#distance matrix for clustering
-distMatrix <- dist(scale(tdm2))
-fit <- hclust(distMatrix, method="ward.D2")
-plot(fit)
-##################################################
-#here
-
+#########################################################################################
 inspect(ACQcl)
 
 #we're going to start with the document after punctuation has been removed
@@ -238,11 +220,9 @@ for (i in 1:nrow(count_sentences)){
 #bind final df together
 final_nopunct_df <- cbind(nopunct,count_sentences)
 
-#for each word print its part of speech using the wordnet packages
-setDict("/usr/local/Cellar/wordnet/3.1/dict")
-library(wordnet)
-getFilterTypes()
-
+########################################
+#part of speech                     ####
+########################################
 str(topdocs)
 library(koRpus)
 # perform POS tagging
@@ -253,10 +233,23 @@ text.tagged <- treetag("1.txt", treetagger="manual", lang="en",
 #find out why lib is not in tree tagger...then the above should work.
 
 
+########
+#parts of speech - not complete, we have a list of words. all tht is left is tagging parts of speech
+all_words <- c()
+id.all <- c()
 
+for (i in 1:10){
+  all_words <- tokenize_words(topdocs[[i]][[1]])
+  id.all[i] <- names(topdocs[i])
+}
+
+all.words <- as.data.frame(all_words)
+all.words$all_words <- as.character(all.words$all_words)
 
 
 #################################################################################
+##not sure this works, backup
+
 #for zipfr
 library(languageR)
 document.spc <- text2spc.fnc(strsplit(x[[1]][1]$content," "))
@@ -268,5 +261,5 @@ this.spc <- text2spc.fnc(text)
 
 #create growth object
 this_growth<- growth.fnc(text)
-
+all.words[1,]
 
