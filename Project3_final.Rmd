@@ -30,7 +30,7 @@ We will perform analysis on a corpus of 50 documents from the acq dataset.
 ```{r}
 data("acq")
 
-#compilation of 50 news articles with additional meta information form the 
+#compilation of 50 news articles with additional meta information form the
 #Reuters-21578 data se of topic acq. 13 documents
 ACQ <- acq
 ```
@@ -39,9 +39,8 @@ ACQ <- acq
 
 We can reference information about the document with any of the following commands.
 ```{r}
-
 #this tell us what information (metadata) about our documents.  
-# For example, how many chars are within each doc. 
+# For example, how many chars are within each doc.
 alldocs <- inspect(ACQ[1:2]) #just the first 2
 
 # get the first document
@@ -55,18 +54,18 @@ id.2 <- meta(ACQ[[1]], "id") #this is another way to reference
 The command \texttt{meta} will return understandable information about the documents. It will tell you who wrote the article, when it was written, the heading of the article, its language, its origin, etc. This can be useful when searching for particular documents or languages.
 
 
-This function tells us more information about the texts (all 50). For example, the maximal term length, non/sparse entries 
+This function tells us more information about the texts (all 50). For example, the maximal term length, non/sparse entries
 ```{r}
 ACQdoc <-DocumentTermMatrix(ACQ)
 ACQdoc
 ```
 
 The \texttt{DocumentTermMatrix} lists as its rows the documents in the corpus, and as it columns the words of the corpus. entries of this matrix are numbered values that indicate how many times given document (row) contains a given a word (column). This can be seen here:
-```{r} 
+```{r}
 inspect(ACQdoc[1:6,1:7])
 ```
 
-\texttt{termFreq} tells us more about an individual doc/text such as term freq within the document. We can also then rank the terms from most frequent to least.
+\texttt{termFreq} tells us more about an individual doc/text such as term frequency within the document. We can also then rank the terms from most frequent to least.
 ```{r}
 test1tf <- as.data.frame(termFreq(text1))
 #rank words most to least
@@ -80,16 +79,16 @@ The \texttt{tm\_map} and \texttt{content\_transformer} transforms the data such 
 ACQlow <- tm_map(ACQ, content_transformer(tolower))
 ```
 
-We also remove characters that are Ebglish letters or spaces. This removes punctuation from the text that can cause issues later on. We note that this is not the ideal method for removing punctuation as hyphenated words like \texttt{cross-sectional} would be distorted to something that isn't a word. For the purposes here, this technique is okay.
+We also remove characters that are English letters or spaces. This removes punctuation from the text that can cause issues later on. We note that this is not the ideal method for removing punctuation as hyphenated words like \texttt{cross-sectional} would be distorted to something that isn't a word. For the purposes here, this technique is okay.
 ```{r}
-#the next function removes anything other than English letters or spaces 
+#the next function removes anything other than English letters or spaces
 removeNumPunct <- function(x) gsub("[^[:alpha:][:space:]]*", "", x)
 ACQcl <- tm_map(ACQlow,content_transformer(removeNumPunct))
 ```
 
 We also run into a problem if we wanted to analyze frequency of words. The problem is that some words are just obviously more frequent: \texttt{the}, \texttt{a}, \texttt{of}, etc. Thus, we create a class of words, called \emph{stopwords} \- which is a part of the \texttt{tm} and \texttt{quanteda} packages \- which we wish to remove from the corpus.
 ```{r}
-#after converting the text to lower case, and removing punctionation 
+#after converting the text to lower case, and removing punctuation
 #we are going to remove stopwords (filler words such as a, an, the, etc.)
 stopwords <- c(stopwords('english'))
 ACQstop <- tm_map(ACQcl, removeWords, stopwords)
@@ -102,7 +101,7 @@ inspect(ACQ[1])
 inspect(ACQstop[1])
 ```
 
-We see that the first document of ACQ drops from 1287 characters to 1030 characters. This means that this document had abou at 20\% reduction in the number of characters. We see that this is a pretty stable reduction across this corpus.
+We see that the first document of ACQ drops from 1287 characters to 1030 characters. This means that this document had about at 20\% reduction in the number of characters. We see that this is a pretty stable reduction across this corpus.
 
 Now that we have removed the document's punctuation and stopwords, we put that corpus back into a \texttt{DocumentTermMatrix}.
 ```{r}
@@ -145,9 +144,9 @@ top10
 ```
 
 ## For each document work through the examples given in Lecture 7 to display the dendrogram and the WordCloud
-Both the dendograms and the word clouds analyzes the original corpus without punctuation or stopwords. We decided to remove punctuation and stopwords for the visualization because we are not interested in the interaction of common English words. Rather we prefer to ignore the punctuation and stopwords. 
+Both the dendograms and the word clouds analyzes the original corpus without punctuation or stopwords. We decided to remove punctuation and stopwords for the visualization because we are not interested in the interaction of common English words. Rather we prefer to ignore the punctuation and stopwords.
 
-For the dendogram, we provide two rednerings. The first dendogram uses all the terms from the corpus without punctuation and stopwords. This reveals very little information as it has all 1,502 words displayed in a dendogram. The dendogram becomes very messy and does not reveal anything interesting about the document. So, we include a dendogram which removes sparse terms at a sparse level of 0.8. This reduces the \texttt{DocumentTermMatrix} to only 28 terms. This then makes the dendogram much easier to interpret. 
+For the dendogram, we provide two renderings. The first dendogram uses all the terms from the corpus without punctuation and stopwords. This reveals very little information as it has all 1,502 words displayed in a dendogram. The dendogram becomes very messy and does not reveal anything interesting about the document. So, we include a dendogram which removes sparse terms at a sparse level of 0.8. This reduces the \texttt{DocumentTermMatrix} to only 28 terms. This then makes the dendogram much easier to interpret.
 
 These are dendograms for each of the 10 chosen documents with their ID listed in the title of the figure.
 
@@ -160,7 +159,7 @@ top10.dendogram <- function(doc)
   distMatrix <- dist(scale(acq.mat[doc,]))
   fit <- hclust(distMatrix, method = "ward.D2")
   plot(fit,main = paste("Full Dendogram for ID: ", doc), xlab ="", sub = "")
-  
+
   # dendogram with sparse terms removed
   acq.sp <- removeSparseTerms(ACQdm2, sparse = .8)
   acq.mat <- as.matrix( acq.sp[doc,] )
@@ -202,13 +201,13 @@ wordcloud.func <- function(ACQstop, doc)
   dtm <- TermDocumentMatrix(ACQstop)
   v <- as.matrix(dtm[,doc])
   set.seed(1234)
-  
+
   layout(matrix(c(1, 2), nrow=2), heights=c(0.5, 4.5))
   par(mar=rep(0, 4))
   plot.new()
   text(x=0.5, y=0.5, paste("Word Cloud for Document ID: ",doc) )
   wordcloud(words = rownames(v), freq = v, min.freq = 1,
-            max.words=200, random.order=FALSE, rot.per=0.35, 
+            max.words=200, random.order=FALSE, rot.per=0.35,
             colors=brewer.pal(8, "Dark2"))
 }
 
@@ -230,7 +229,7 @@ par(mar=rep(0, 4))
 plot.new()
 text(x=0.5, y=0.5, "Word Cloud for Top Documents" )
 wordcloud(words = names(v), freq = v, min.freq = 1,
-          max.words=200, random.order=FALSE, rot.per=0.35, 
+          max.words=200, random.order=FALSE, rot.per=0.35,
           colors=brewer.pal(8, "Dark2"))
 ```
 
@@ -241,21 +240,21 @@ options(warn=0)
 
 ## Prior to removing punctuation find the longest word and longest sentence in each of 10 docs my corpus is before removing punctuation
 
-For this task, we will use the maximum entropy parsers available in the \texttt{openNLP}. The results are printed in the table after the following code. We calculate the longest sentence by characters and by consituents (words, etc.). If these two sentences are different, we note that, otherwise, we just list the longest sentence. 
+For this task, we will use the maximum entropy parsers available in the \texttt{openNLP}. The results are printed in the table after the following code. We calculate the longest sentence by characters and by constituents (words, etc.). If these two sentences are different, we note that, otherwise, we just list the longest sentence.
 
 ```{r}
 # find the longest word and longest sentence in each document from the 10 largest documents
 for (i in 1:10) {
   ind <- top10[i]
   s <- as.String(acq[[ind]]$content)
-  
+
   ##longest sentence by characters
   sent_token_annotator <- Maxent_Sent_Token_Annotator()
   a1 <- sent_token_annotator(s)
   l <- a1$end - a1$start # table of sentence lengths
   ls.i <- which.max(l) #index of longest sentence by characters
   ls <- as.String( s[a1][ls.i] ) #longest sentence by characters
-  
+
   ##longest sentence by constituents
   word_token_annotator <- Maxent_Word_Token_Annotator()
   a2 <- word_token_annotator(s, a1)
@@ -282,25 +281,25 @@ for (i in 1:10) {
     print( as.String(""))
   }
   print( as.String(""))
-  
+
 }
 ```
 
 ## Print a table of the length of each sentence in each of the 10 documents.
 
-We print a table of sentence length for each document, by nchar and by number of words. Since the sentences are long, we only print the first 45 characters. 
+We print a table of sentence length for each document, by nchar and by number of words. Since the sentences are long, we only print the first 45 characters.
 
 ```{r}
 d.full <- data.frame()
 for (i in 1:10) {
   ind <- top10[i]
   s <- as.String(acq[[ind]]$content)
-  
+
   ##longest sentence by characters
   sent_token_annotator <- Maxent_Sent_Token_Annotator()
   a1 <- sent_token_annotator(s)
   l <- a1$end - a1$start # table of sentence lengths
-  
+
   ##longest sentence by constituents
   word_token_annotator <- Maxent_Word_Token_Annotator()
   a2 <- word_token_annotator(s, a1)
@@ -325,26 +324,26 @@ Since this is so long, we only print the head of the table here. The entire tabl
 d <- data.frame()
 pos_tag_annotator = Maxent_POS_Tag_Annotator()
 for (i in 1:10) {
-  
+
   ind <- top10[i]
   s <- as.String(acq[[ind]]$content)
   s <- tolower(s)
-  
+
   a1 <- sent_token_annotator(s)
-  
+
   # For each sentence of each document, remove the punctuation.
   s.cl <- sapply( s[a1], removePunctuation )
-  
+
   for( j in 1:length(s.cl)) {
 
     sub.s <- as.String(s.cl[j])
-    
+
     a2 <- word_token_annotator(sub.s, a1)
     a3 <- pos_tag_annotator( sub.s, a = a2)
 
     words <- as.vector( sub.s[a3] )
     pos <- as.matrix( lapply(a3$features, function(x) x$POS) )
-    
+
     df <- data.frame(words=words, pos=pos)
     d<-rbind(d,df)
   }
@@ -366,31 +365,31 @@ for(i in 1:10) {
   ind <- top10[i]
   f <- as.matrix(ACQdm2[ind,]) # frequencies for all words
 
-  z <- tfl(f) # 
-  plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency", 
+  z <- tfl(f) #
+  plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency",
        main=paste("Type Frequency Plot for ID: ",acq[[ind]]$meta$id))
 }
 ```
 
 It is clear from these plots, that every document uses about a tenth of the words in the entire corpus. This is seen by the very long tail of black at value 0 for most words along the $x$-axis.
 
-Below, a Type Frequency plot for the all top 10 documents at once. This shows a more gradual slope down from the extremly frequent words like \texttt{the} to less frequent words like \texttt{yens}.
+Below, a Type Frequency plot for the all top 10 documents at once. This shows a more gradual slope down from the extremely frequent words like \texttt{the} to less frequent words like \texttt{yens}.
 
 ```{r, out.width="5.5cm", fig.align="center"}
 f <- colSums(as.matrix(ACQdm2[top10,])) # frequencies for all words
-z <- tfl(f) # 
-plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency", 
+z <- tfl(f) #
+plot(sort(z$f,decreasing=TRUE), xlab="rank",ylab="frequency",
      main="Type Frequency Plot for Top 10")
 ```
 
-We now plot convert the type frequency list to a frequency spectrum object. This allows us to plot frequency spectra for each document. The frequency spectra reveal that these documents come from a similar source. Frequency Spectra look different for different types of documents. This incrediby sharp fall off from the first to third classes indicates shorter news-like documents.
+We now plot convert the type frequency list to a frequency spectrum object. This allows us to plot frequency spectra for each document. The frequency spectra reveal that these documents come from a similar source. Frequency Spectra look different for different types of documents. This incredibly sharp fall off from the first to third classes indicates shorter news-like documents.
 
 ```{r out.width="4.3cm"}
 for(i in 1:10) {
   ind <- top10[i]
   f <- as.matrix(ACQdm2[ind,]) # frequencies for all words
 
-  z <- tfl(f) # 
+  z <- tfl(f) #
   s <- tfl2spc(z)
   plot(s, main=paste("Frequency Spectrum for ID: ",acq[[ind]]$meta$id))
 }
@@ -401,7 +400,7 @@ for(i in 1:10) {
 
 The project helped us learn a lot about text analytics and key principals of analyzing unstructured text.  Key themes of this project that helped us learn about data science includes (1) the general approach to breaking down texts in R using Corpuses and tokens; (2) the exploratory analysis and derived insights that can be accomplish on a text documents through word counts, frequencies, associations, and character lengths; and (3) learning how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and means).
 
-There were a few key considerations/issues we realized through this project about text analytics within data science.  For example, when breaking down text for mining you might go through the exercises of removing punctuation.  When removing punctuation you run the risk of losing hyphenated words or variations of words used such as those with apostrophes.  Additionally, a common problem is misspellings and variations of spelling of terms or words.  For example, when trying to identify key terms and themes through text analytics/text mining you might dilute popular trends based on not summarizing the different variations of spelling of a term into one.  For example, if we were analyzing top terms, "profit", "profitable", and "profits" needs to be considered as one term in order to full capture true trends of words. If the variations aren't considered then the total frequencies (therefore top trends and categories) might not get captured. 
+There were a few key considerations/issues we realized through this project about text analytics within data science.  For example, when breaking down text for mining you might go through the exercises of removing punctuation.  When removing punctuation you run the risk of losing hyphenated words or variations of words used such as those with apostrophes.  Additionally, a common problem is misspellings and variations of spelling of terms or words.  For example, when trying to identify key terms and themes through text analytics/text mining you might dilute popular trends based on not summarizing the different variations of spelling of a term into one.  For example, if we were analyzing top terms, "profit", "profitable", and "profits" needs to be considered as one term in order to full capture true trends of words. If the variations aren't considered then the total frequencies (therefore top trends and categories) might not get captured.
 
 Lastly, the use of text analytics really depends on what we're trying to accomplish.  Word clouds are interesting and good tools for data exploration but may not be helpful nor a tool for one to make actionable decisions.  The application and use case of association of terms as well as dendograms are interesting because if someone was interested to categorize or summarize key concepts on a website or through a content service, it may provide actionable insight on where to summarize or collapse specific sub-pages or categories of content and sources/themes.  
 
