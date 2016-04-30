@@ -1,96 +1,128 @@
 ---
-title: 'Project #'
+title: 'Project #3'
 author: "Nisha Iyer, Rachel Jordan, Sam Dooley"
-date: "April 29, 2016"
+date: "April 30, 2016"
 output: pdf_document
+geometry: margin=0.5in
 ---
 
-### For the complete set of documents, try the functions in lecture 7:
+```{r chunk_name, include=FALSE}
+library(tm)
+library(dplyr)
+library(ggplot2)
+library(wordcloud)
+library(quanteda)
+library(wordnet)
+library(RColorBrewer)
+library(NLP)
+library(openNLP)
+library(openNLPdata)
+library(textreuse)
+```
 
-#####You can start by following the slides in Lecture 7.You should do at least the following:For the complete set of documents, try the functions in lecture 7. What happens? Does it yield anything understandable about the documents. [answered below]
+We will perform analysis on a corpus of 50 documents from the acq dataset.
 
 ```{r}
 data("acq")
-head(acq)
 
 #compilation of 50 news articles with additional meta information form the 
 #Reuters-21578 data se of topic acq. 13 documents
 ACQ <- acq
-ACQ
+```
 
-#this tell us what information (metadata) about our documents.  For example, how many chars are within each doc. 
-inspect(ACQ) #all 50 docs
-inspect(ACQ[1:2]) #just the first 2
+##### Explore using functions from Lecture 7  
 
-meta(ACQ[[2]], "id") #this is another way to reference
+We can reference information about the document with any of the following commands.
+```{r}
 
-#extract one document
+#this tell us what information (metadata) about our documents.  
+# For example, how many chars are within each doc. 
+alldocs <- inspect(ACQ[1:2]) #just the first 2
+
+# get the first document
 text1 <- ACQ[[1]]
-text1
 
-#This function tells us more information about the texts (all 50)
-#For example, the maximal term length, non/sparse entries 
+# get the id from the second document
+id.2 <- ACQ[[1]]$meta$id
+id.2 <- meta(ACQ[[1]], "id") #this is another way to reference
+```
+
+The command \texttt{meta} will return understandable information about the documents. It will tell you who wrote the article, when it was written, the heading of the article, its language, its origin, etc. This can be useful when searching for particular documents or languages.
+
+
+This function tells us more information about the texts (all 50). For example, the maximal term length, non/sparse entries 
+```{r}
 ACQdoc <-DocumentTermMatrix(ACQ)
 ACQdoc
-nrow(ACQdoc) #50 rows
-ncol(ACQdoc) #2103 cols
-inspect(ACQdoc[1:6,1:10])
+```
 
-#termFreq tells us more about an individual doc/text such as term freq within the doc
+The \texttt{DocumentTermMatrix} lists as its rows the documents in the corpus, and as it columns the words of the corpus. entries of this matrix are numbered values that indicate how many times given document (row) contains a given a word (column). This can be seen here:
+```{r} 
+inspect(ACQdoc[1:6,1:7])
+```
+
+\texttt{termFreq} tells us more about an individual doc/text such as term freq within the document. We can also then rank the terms from most frequent to least.
+```{r}
 test1tf <- as.data.frame(termFreq(text1))
 #rank words most to least
-rank_of_words <- cbind(as.data.frame(rownames(test1tf)),test1tf %>% arrange(desc(termFreq(text1))))
+rank_words <- as.data.frame(test1tf[order(test1tf, decreasing = T),])
+head(rank_words)
+```
 
-#the tm_map and content_transformer transforms the data 
-#such as converting the terms to lower case
+The \texttt{tm\_map} and \texttt{content\_transformer} transforms the data such as converting the terms to lower case. Converting text to lower case is helpful for matching words that can have different capitalization schemes. For instance, a word might appear at the beginning of the sentence, but it is important to be able to count that word as the same as if it were not capitalized.
+```{r}
+# to lower case
 ACQlow <- tm_map(ACQ, content_transformer(tolower))
-ACQlow
+```
 
+We also remove characters that are Ebglish letters or spaces. This removes punctuation from the text that can cause issues later on. We note that this is not the ideal method for removing punctuation as hyphenated words like \texttt{cross-sectional} would be distorted to something that isn't a word. For the purposes here, this technique is okay.
+```{r}
 #the next function removes anything other than English letters or spaces 
 removeNumPunct <- function(x) gsub("[^[:alpha:][:space:]]*", "", x)
 ACQcl <- tm_map(ACQlow,content_transformer(removeNumPunct))
-ACQcl
+```
 
+We also run into a problem if we wanted to analyze frequency of words. The problem is that some words are just obviously more frequent: \texttt{the}, \texttt{a}, \texttt{of}, etc. Thus, we create a class of words, called \emph{stopwords} \- which is a part of the \texttt{tm} and \texttt{quanteda} packages \- which we wish to remove from the corpus.
+```{r}
 #after converting the text to lower case, and removing punctionation 
 #we are going to remove stopwords (filler words such as a, an, the, etc.)
 stopwords <- c(stopwords('english'))
 ACQstop <- tm_map(ACQcl, removeWords, stopwords)
+```
 
+This creates an interesting point of analysis: \emph{How much information or text do we lose when we remove stopwords?}
+```{r}
 #here we can look at the first two text docs and see how the word count (char) differs
-inspect(ACQ[1:2])#the original; 1 with 1287 chars, 2nd with 784 chars
-inspect(ACQstop[1:2]) #the amount of words is much less; first with 1030 chars, second with 620 chars
+inspect(ACQ[1])
+inspect(ACQstop[1])
+```
 
+We see that the first document of ACQ drops from 1287 characters to 1030 characters. This means that this document had abou at 20\% reduction in the number of characters. We see that this is a pretty stable reduction across this corpus.
+
+Now that we have removed the document's punctuation and stopwords, we put that corpus back into a \texttt{DocumentTermMatrix}.
+```{r}
 #now we are putting the terms without punctuation and stopwords into a matrix
 ACQdm2 <- DocumentTermMatrix(ACQstop, control= list(wordLenghts = c(1,Inf)))
 ACQdm2
-
-
-#find terms with a frequency of 5 or more
-freq.terms <- findFreqTerms(ACQdm2, lowfreq=5)
-freq.terms
-#there are 201 terms with a frequency of 5 or more
-
-#the Assocs function finds associations with terms, such as states or year
-findAssocs(ACQdm2, "states", 0.25)
-findAssocs(ACQdm2, "year", 0.25)
-
-#Next we're going to put the terms with frequency count of 5 or more into a dataframe
-term.freq <- rowSums(as.matrix(ACQdm2))
-term.freq <- subset(term.freq, term.freq <= 5)
-termdf <- data.frame(term = names(term.freq),freq=term.freq)
-term_sort <- termdf %>% arrange(desc(freq))
-term_sort[1:50,]
-
-#plot top 50 frequent terms
-ggplot(term_sort[1:50,], aes(x=term,y=freq)) + geom_bar(stat = "identity") + 
-  xlab("Terms") + ylab("Count") + coord_flip()
 ```
-##### What happens? Does it yield anything understandable about the documents 
-###### Yes, the different functions allows us to break down the different text documents we were able to see how many stopwords and punctuation was included in the total character count of the texts the term frequencies allowed us insight into the top frequented words in the text the functions provided a lot of insight into the general documents, text, and words used in the texts
-
-##### Find the 10 longest documents (in number of words).  
+We also use the function \texttt{findFreqTerms} to look through the \texttt{DocumentTermMatrix} to find those words that were used a certain number of times or were used in a range of times.
 ```{r}
+#find terms with a frequency between 15 and 18
+freq.terms <- findFreqTerms(ACQdm2, lowfreq=15, highfreq = 18)
+freq.terms
+```
+We also have a function that will find words in your corpus \- really your \texttt{DocumentTermMatrix} \- and determine which of those words are Associates to another word above a given correlation score. We note that this is a correlation based of of how words are used in the \texttt{DocumentTermMatrix}, not similarity of the string like a Levenshtein distance or something.
+```{r}
+#the Assocs function finds associations with terms, such as states or year
+findAssocs(ACQdm2, "states", 0.6)
+```
+
+We thus conclude that the different functions allow us to break down the different text documents we were able to see how many stopwords and punctuation was included in the total character count of the texts the term frequencies allowed us insight into the top frequented words in the text the functions provided a lot of insight into the general documents, text, and words used in the texts
+
+##### Find the 10 longest documents (in number of words)
+```{r results="hide"}
 #using quanteda for the next few questions
+data("acq")
 mycorpus <- corpus(acq)
 summary_acq <- as.data.frame(summary(mycorpus))
 
@@ -98,16 +130,18 @@ summary_acq <- as.data.frame(summary(mycorpus))
 sort_top10 <- summary_acq %>% arrange(desc(Tokens))
 top_10_docs <- subset(sort_top10, select=c(id, heading))[1:10,]
 top10 <- top_10_docs[,1]
-
-top10
 topdocs <- mycorpus[mycorpus$documents$id %in% top10]
-topdocs
-
-
+```
+We see from the above that the document IDs in the from the corpus' metadata are listed below. The order is in decreasing order by number of words.
+```{r}
+top10
+```
+##### For each document work through the examples given in Lecture 7 to display the dendrogram and the WordCloud
+```{r}
 #top 10 dendogram, 1 for each of the top 10 documents
 top10.dendogram <- function(tdm2,doc)
 {
-  acq.mat <- as.matrix(t(tdm2))
+  acq.mat <- as.matrix(tdm2)
   acq.mat <- as.data.frame(acq.mat)
   acq.mat <- acq.mat[,top10]
   acq.mat <- as.matrix(acq.mat)
@@ -115,23 +149,17 @@ top10.dendogram <- function(tdm2,doc)
   fit <- hclust(distMatrix, method = "ward.D2")
   print(plot(fit,main = "Dendogram"))
 }
-for (i in 1:10){
-top10.dendogram(tdm2,i)
-}
+
 
 #word cloud for top 10
 wordcloud.func <- function(ACQstop, doc)
 {
   dtm <- TermDocumentMatrix(ACQstop)
-  m <- as.data.frame(as.matrix(dtm))
-  m <- m[,top10]
-  m <- as.matrix(m)
-  v <- sort(m[,doc],decreasing=TRUE)
-  d <- data.frame(word = row.names(m),freq=v)
+  v <- as.matrix(dtm[,doc])
   set.seed(1234)
-  print(wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+  wordcloud(words = rownames(v), freq = v, min.freq = 1,
             max.words=200, random.order=FALSE, rot.per=0.35, 
-            colors=brewer.pal(8, "Dark2")))
+            colors=brewer.pal(8, "Dark2"))
 }
 for (i in 1:10){
   wordcloud.func(ACQstop,i)
@@ -140,66 +168,6 @@ for (i in 1:10){
 
 ###### Prior to removing punctuation find the longest word and longest sentence in each of 10 docs my corpus is before removing punctuation
 
-```{r}
-#####FIND LONGEST WORD in 10 docs
-max_length <- c()
-word <- c()
-id <- c()
-for (i in 1:10){
-  words <- tokenize_words(topdocs[[i]][[1]])
-  word[i] <- words[nchar(words) == max(nchar(words))]
-  max_length[i] <- max(nchar(words))
-  id[i] <- names(topdocs[i])
-}
-
-final.longest_word <- data.frame(max_length = max_length,word=word,id = id)
-
-#####FIND LONGEST SENTENCE in 10 docs
-topdocs
-topdocs[[2]]
-names(topdocs[1])
-
-#split into sentences
-get_sentence_df_func <- function(x){
-  sentence_df <- data.frame(sentence = character(0),
-                            document = character(0))
-  for (i in 1:10){
-    temp <- data.frame(sentence=tokenize_sentences(x[[i]][[1]]),id=names(x[i]))
-    sentence_df <- rbind(sentence_df,temp)
-  }
-  return(sentence_df)
-}
-
-#ALL sentences in the top 10 documents 
-text_sent <- get_sentence_df_func(topdocs)
-
-#word count for each sentence
-text_sent$sentence <- as.character(text_sent$sentence)
-count <- c()
-sapply(strsplit(text_sent$sentence[23], " "), length)
-for (i in 1:nrow(text_sent)){
-  count[i] <- sapply(strsplit(text_sent$sentence[i], " "), length)
-}
-
-#length of each sentence in each document
-count_sentences <- cbind(count,text_sent)
-
-#top 10 lengths 
-longest_10 <- count_sentences %>% group_by(id) %>% 
-  arrange(desc(count)) %>% top_n(1,count) %>% distinct(id)
-
-#remove punctuation for each sentence
-#remove punctuation from topdocs
-str(count_sentences$sentence)
-count_sentences$sentence_nopunct[4] <- ( gsub("[[:punct:]]", "", count_sentences$sentence[4]) )
-#loop to remove punctuation from each sentence
-nopunct <- c()
-for (i in 1:nrow(count_sentences)){
-  nopunct[i] <-  ( gsub("[[:punct:]]", "", count_sentences$sentence[i]) )
-}
-#bind final output together together
-final_nopunct_df <- cbind(nopunct,count_sentences)
-```
 ##### The project helped us learn a lot about text analytics and key principals of analyzing unstructured text.We identified three key areas this project helped you learn about data science includes (1) the general approach to breaking down texts in R using Corpuses and tokens; (2) The exploratory analysis and derived insights that can be accomplish on a text documents through word counts, frequencies, associations, and character lengths; (3) we were able to learn how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and kmeans). 
 
 
