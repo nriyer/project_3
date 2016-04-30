@@ -35,7 +35,7 @@ data("acq")
 ACQ <- acq
 ```
 
-##### Explore using functions from Lecture 7  
+## Explore using functions from Lecture 7  
 
 We can reference information about the document with any of the following commands.
 ```{r}
@@ -124,7 +124,7 @@ findAssocs(ACQdm2, "states", 0.6)
 
 We thus conclude that the different functions allow us to break down the different text documents we were able to see how many stopwords and punctuation was included in the total character count of the texts the term frequencies allowed us insight into the top frequented words in the text the functions provided a lot of insight into the general documents, text, and words used in the texts
 
-##### Find the 10 longest documents (in number of words)
+## Find the 10 longest documents (in number of words)
 ```{r results="hide"}
 #using quanteda for the next few questions
 data("acq")
@@ -137,11 +137,14 @@ top_10_docs <- subset(sort_top10, select=c(id, heading))[1:10,]
 top10 <- top_10_docs[,1]
 topdocs <- mycorpus[mycorpus$documents$id %in% top10]
 ```
+
 We see from the above that the document IDs in the from the corpus' metadata are listed below. The order is in decreasing order by number of words.
+
 ```{r}
 top10
 ```
-##### For each document work through the examples given in Lecture 7 to display the dendrogram and the WordCloud
+
+## For each document work through the examples given in Lecture 7 to display the dendrogram and the WordCloud
 Both the dendograms and the word clouds analyzes the original corpus without punctuation or stopwords. We decided to remove punctuation and stopwords for the visualization because we are not interested in the interaction of common English words. Rather we prefer to ignore the punctuation and stopwords. 
 
 For the dendogram, we provide two rednerings. The first dendogram uses all the terms from the corpus without punctuation and stopwords. This reveals very little information as it has all 1,502 words displayed in a dendogram. The dendogram becomes very messy and does not reveal anything interesting about the document. So, we include a dendogram which removes sparse terms at a sparse level of 0.8. This reduces the \texttt{DocumentTermMatrix} to only 28 terms. This then makes the dendogram much easier to interpret. 
@@ -236,7 +239,7 @@ options(warn=0)
 ```
 
 
-###### Prior to removing punctuation find the longest word and longest sentence in each of 10 docs my corpus is before removing punctuation
+## Prior to removing punctuation find the longest word and longest sentence in each of 10 docs my corpus is before removing punctuation
 
 For this task, we will use the maximum entropy parsers available in the \texttt{openNLP}. The results are printed in the table after the following code. We calculate the longest sentence by characters and by consituents (words, etc.). If these two sentences are different, we note that, otherwise, we just list the longest sentence. 
 
@@ -283,7 +286,7 @@ for (i in 1:10) {
 }
 ```
 
-###### Print a table of the length of each sentence in each of the 10 documents.
+## Print a table of the length of each sentence in each of the 10 documents.
 
 We print a table of sentence length for each document, by nchar and by number of words. Since the sentences are long, we only print the first 45 characters. 
 
@@ -312,8 +315,11 @@ rownames(d.full) <- 1:dim(d.full)[1]
 print(d.full)
 ```
 
+## For each word print its part of speech
 
-```{r include=FALSE}
+Again, we use the \texttt{openNLP} package and the part of speech tagger to determine these parts of speech. Below is a table of every word in the corpus. There will be duplicates in this list as words can have different parts of speech. For example, the word \texttt{total} appears in the text as a \texttt{JJ} and a \texttt{NN}.
+
+```{r}
 d <- data.frame()
 pos_tag_annotator = Maxent_POS_Tag_Annotator()
 for (i in 1:10) {
@@ -339,19 +345,18 @@ for (i in 1:10) {
     
     df <- data.frame(words=words, pos=pos)
     d<-rbind(d,df)
-    
-
   }
-
-  
 }
 nums <-sapply( d$words, function(x) suppressWarnings(!is.na(as.numeric(as.character(x)))))
 d <- d[!nums,]
 d <- unique(d)
+print( d[order(d$words),] )
 ```
 
+## Analyze word frequency using functions from package zipfR
 
-###### Discussion
+
+## Discussion
 
 The project helped us learn a lot about text analytics and key principals of analyzing unstructured text.  Key themes of this project that helped us learn about data science includes (1) the general approach to breaking down texts in R using Corpuses and tokens; (2) the exploratory analysis and derived insights that can be accomplish on a text documents through word counts, frequencies, associations, and character lengths; and (3) learning how to apply data mining techniques to text analytics for deeper insights such as clustering (hierarchical and means).
 
